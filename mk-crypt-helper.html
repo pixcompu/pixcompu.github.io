@@ -1,0 +1,1852 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+        <style>
+            /*
+                global style
+            */
+            body{
+                padding-top: 2em;
+                background: url(https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/ca530ccc-fd0f-4f26-bbc7-9af8e8225eea/dd5qnyp-781f6297-22b0-46d8-b100-a34b741a1160.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiJcL2ZcL2NhNTMwY2NjLWZkMGYtNGYyNi1iYmM3LTlhZjhlODIyNWVlYVwvZGQ1cW55cC03ODFmNjI5Ny0yMmIwLTQ2ZDgtYjEwMC1hMzRiNzQxYTExNjAucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.yxbgNBh9crVxUr4QfVmMITa488tmAqlbxQU-XlTSXgE) no-repeat center center fixed; 
+                -webkit-background-size: cover;
+                -moz-background-size: cover;
+                -o-background-size: cover;
+                background-size: cover;
+            }
+
+            /*
+                make the inventory and recipes semi-transparent
+            */
+            .card {
+                opacity: 0.9;
+            }
+        </style>
+    </head>
+    <body>
+        <!-- main section -->
+        <div class="container container-fluid">
+            <!-- inventory section -->
+            <div class="card border-primary mb-3">
+                <div class="card-header">
+                    <h3>Inventario</h3>
+                </div>
+                <div class="card-body">
+                    <form action="POST" onkeydown="return event.key != 'Enter';">
+                        <div class="form-row">
+                            <div class="col">
+                                <div class="form-group">
+                                    <label for="inventory-quantity">Cantidad (+/-)</label>
+                                    <input required value="1" type="number" id="inventory-quantity" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label for="inventory-item">Elemento</label>
+                                    <select required id="inventory-item" class="form-control"></select>
+                                </div>
+                            </div>
+                            <button type="button" id="add-inventory" class="btn btn-primary btn-lg">Agregar</button>
+                        </div>
+                    </form>
+                    <table class="table">
+                        <thead class="thead-dark">
+                          <tr>
+                            <th scope="col">Elemento</th>
+                            <th scope="col">Cantidad</th>
+                            <th scope="col">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody id="inventory-user-items"></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- recipes section -->
+            <div class="card border-primary mb-3">
+                <div class="card-header">
+                    <h3>Recetas</h3>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead class="thead-dark">
+                          <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Nombre</th>
+                            <th scope="col">Ingredientes</th>
+                            <th scope="col">Faltante (inventario)</th>
+                          </tr>
+                        </thead>
+                        <tbody id="recipe-items"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- toast section (it is hidden unless the message is invoked)-->
+        <div id="mk-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" style="position: absolute; top: 0; right: 0;">
+            <div class="toast-header">
+                <svg class="bd-placeholder-img rounded mr-2" width="20" height="20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img">
+                    <rect width="100%" height="100%" fill="#007aff"></rect>
+                </svg>
+                <strong class="mr-auto">Mortal Kombat</strong>
+                <small class="text-muted">just now</small>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="toast-body"></div>
+        </div>
+        <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>        
+        <script>
+            /*
+                Scrap IGN page code
+
+                JSON.stringify(
+                    [...document.querySelectorAll('#main-content > div > div > div.jsx-2556248771.side-by-side > div.jsx-811955365.wiki-page.page-content > div.jsx-1391240796.below-bump > section:nth-child(13) > table tr')]
+                    .filter(el => el.cells.length > 3) // get only the data cells skip the header cells
+                    .map(el => {
+                        var recipeItems = [...el.cells];
+                        var reference = [...recipeItems[0].childNodes].find(n => n.localName === 'a') // get the link inside recipe cell;
+                        return {
+                            recipe: recipeItems[0].innerText,
+                            type: 'Character Gear',
+                            reference: {
+                                type: 'Character',
+                                item: reference ? reference.text : '',
+                                link: reference ? reference.href : ''
+                            },
+                            requirements: recipeItems
+                                .filter((ri, pos) => pos > 0) // first cell is the recipe name so we take the next cells
+                                .filter(ri => /[a-zA-Z0-9]+/.test(ri.innerText)) // only cells who actually contains at least a letter or number
+                                .map(ri => {
+                                    return {
+                                        quantity: 1,
+                                        name: ri.innerText
+                                    } 
+                                })
+                        };
+                    })
+                )
+            */
+            var recipes = 
+            [{
+                "recipe": "Amulet of Shinnok",
+                "type": "Principal",
+                "reference": {
+                    "type": "Key",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Ensorcelled Demon's Heart"
+                }, {
+                    "quantity": 1,
+                    "name": "Ensorcelled Eye of a Dragon"
+                }, {
+                    "quantity": 1,
+                    "name": "Skeleton Soul"
+                }]
+            }, {
+                "recipe": "Warrior's Barbarous Face (Baraka Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Baraka",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Baraka"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Leather Strap"
+                }, {
+                    "quantity": 1,
+                    "name": "Distilled Tarkatan Rage"
+                }, {
+                    "quantity": 1,
+                    "name": "Battleworn Helmet"
+                }]
+            }, {
+                "recipe": "Shadow Ops No-Serial Pistol (Cassie Cage Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Cassie Cage Gear",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Cassie_Cage_Gear"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Disassembled Old Pistol"
+                }, {
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }, {
+                    "quantity": 1,
+                    "name": " Outworld Steel"
+                }]
+            }, {
+                "recipe": "Space Odyssae (Cetrion Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Cetrion",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Cetrion"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Ageless Ironbark"
+                }, {
+                    "quantity": 1,
+                    "name": "Elder God's Spark"
+                }, {
+                    "quantity": 1,
+                    "name": "Grave Soil"
+                }]
+            }, {
+                "recipe": "Darkling Weevils (D'vorah Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "D'vorah",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/D%27vorah"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Grotesque Mutated Larva"
+                }, {
+                    "quantity": 1,
+                    "name": "Ground Bone Dust"
+                }, {
+                    "quantity": 1,
+                    "name": "Zaterran Venom Sac"
+                }]
+            }, {
+                "recipe": "Pronghorn and White-Tail (Erron Black Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Erron Black",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Erron_Black"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Rusty Antique Pistol"
+                }, {
+                    "quantity": 1,
+                    "name": "Tygorr Hide"
+                }, {
+                    "quantity": 1,
+                    "name": "Handful of Flux"
+                }]
+            }, {
+                "recipe": "Wintermeter 9,000 (Frost Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Frost",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Frost"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Depowered Tekunin Core"
+                }, {
+                    "quantity": 1,
+                    "name": "Powered Core"
+                }, {
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }]
+            }, {
+                "recipe": "Chaotian Era Chaos (Geras Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Geras",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Geras"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Dregs of the Hourglass"
+                }, {
+                    "quantity": 1,
+                    "name": "Element of Order"
+                }, {
+                    "quantity": 1,
+                    "name": "Stabilized Chaos"
+                }]
+            }, {
+                "recipe": "Mistress of Bojutsu (Jade Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Jade",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Jade"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Mileena's Veil"
+                }, {
+                    "quantity": 1,
+                    "name": "Krypt Spider Silk"
+                }, {
+                    "quantity": 1,
+                    "name": " Essence of Edenian Magic"
+                }]
+            }, {
+                "recipe": "Left Hot Shottie (Jacqui Briggs Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Jacqui Briggs",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Jacqui_Briggs"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Busted Black Market Gauntlet"
+                }, {
+                    "quantity": 1,
+                    "name": "Motherboard"
+                }, {
+                    "quantity": 1,
+                    "name": "Charged Capacitators"
+                }]
+            }, {
+                "recipe": "Boom of the Tiger (Jax Briggs Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Jax Briggs",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Jax_Briggs"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Jax's Cigar Box"
+                }, {
+                    "quantity": 1,
+                    "name": "Carbon Film Resistor"
+                }, {
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }]
+            }, {
+                "recipe": "Licensed to Fight (Johnny Cage Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Johnny Cage",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Johnny_Cage"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Krypt Spider Silk"
+                }, {
+                    "quantity": 1,
+                    "name": "Gold Ore"
+                }, {
+                    "quantity": 1,
+                    "name": "Remnants of a Broken Trophy"
+                }]
+            }, {
+                "recipe": "Trip, Catch, Slash (Kabal Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Kabal",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Kabal"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Bent Hook Swords"
+                }, {
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }, {
+                    "quantity": 1,
+                    "name": "Cordite"
+                }]
+            }, {
+                "recipe": "Dragon Stalker (Kano Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Kano",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Kano"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Disabled Cybernetic Heart"
+                }, {
+                    "quantity": 1,
+                    "name": "Frayed Wiring"
+                }, {
+                    "quantity": 1,
+                    "name": "Synthetic Fiber"
+                }]
+            }, {
+                "recipe": "Scissor Kisser (Kitana Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Kitana",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Kitana"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Edenian Blade Fragment"
+                }, {
+                    "quantity": 1,
+                    "name": "Gold Ore"
+                }, {
+                    "quantity": 1,
+                    "name": "Outworld Steel"
+                }]
+            }, {
+                "recipe": "Winds of Destiny (Kitana Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Kitana",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Kitana"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Sindel's Brush"
+                }, {
+                    "quantity": 1,
+                    "name": "Essence of Edenian Magic"
+                }, {
+                    "quantity": 1,
+                    "name": "Serpent Scales"
+                }]
+            }, {
+                "recipe": "Oni Scrotebag (Kollector Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Kollector",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Kollector"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Torn Sack"
+                }, {
+                    "quantity": 1,
+                    "name": "Tygorr Hide"
+                }, {
+                    "quantity": 1,
+                    "name": "Krypt Spider Silk"
+                }]
+            }, {
+                "recipe": "Noble Kahn's Lynx Macana (Kotal Kahn Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Kotal Kahn",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Kotal_Kahn"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": " Splintered Machuathitl"
+                }, {
+                    "quantity": 1,
+                    "name": "Stabilized Chaos"
+                }, {
+                    "quantity": 1,
+                    "name": "Outworld Steel\n"
+                }]
+            }, {
+                "recipe": "Eager Partner (Kung Lao Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Kung Lao",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Kung_Lao"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Element of Order"
+                }, {
+                    "quantity": 1,
+                    "name": "Elder God's Spark"
+                }, {
+                    "quantity": 1,
+                    "name": "Ill-Fitting Dull Bladed Hat"
+                }]
+            }, {
+                "recipe": "Rods of Penitence (Liu Kang Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Liu Kang",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Liu_Kang"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Zombie Chains"
+                }, {
+                    "quantity": 1,
+                    "name": "Leather Strips"
+                }, {
+                    "quantity": 1,
+                    "name": "Element of Order"
+                }]
+            }, {
+                "recipe": "Shackle of Sin (Noob Saibot Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Noob Saibot",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Noob_Saibot"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Drahmin's mask"
+                }, {
+                    "quantity": 1,
+                    "name": "Stabilized Chaos"
+                }, {
+                    "quantity": 1,
+                    "name": " Obsidian Shard"
+                }]
+            }, {
+                "recipe": "Maelstrom Bringer (Raiden Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Raiden",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Raiden"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Magically Sealed Amulet"
+                }, {
+                    "quantity": 1,
+                    "name": "Elder God's Spark"
+                }, {
+                    "quantity": 1,
+                    "name": "Bottled Thunder"
+                }]
+            }, {
+                "recipe": "Kunai of Hisso (Scorpion Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Scorpion Gear",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Scorpion_Gear"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": " Taven's Sword"
+                }, {
+                    "quantity": 1,
+                    "name": "Necromantic Runestone"
+                }, {
+                    "quantity": 1,
+                    "name": "Netherrealm Magma"
+                }]
+            }, {
+                "recipe": "Katana of the Revenant (Scorpion Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Scorpion Gear",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Scorpion_Gear"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Fractured Kitana"
+                }, {
+                    "quantity": 1,
+                    "name": "Dragon Flame"
+                }, {
+                    "quantity": 1,
+                    "name": "Leather Strips"
+                }]
+            }, {
+                "recipe": "Intimidator (Shao Kahn Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Shao Kahn",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Shao_Kahn"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Dragon King Heart"
+                }, {
+                    "quantity": 1,
+                    "name": "Netherrealm Magma"
+                }, {
+                    "quantity": 1,
+                    "name": "Meteorite Dust"
+                }]
+            }, {
+                "recipe": "Outworld Warrior Extract (Skarlet Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Skarlet",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Skarlet"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Empty Shattered Vial"
+                }, {
+                    "quantity": 1,
+                    "name": "Coagulated Vampire Blood"
+                }, {
+                    "quantity": 1,
+                    "name": "Ground Bone Dust"
+                }]
+            }, {
+                "recipe": "Hunter Killer (Sonya Blade Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Sonya Blade",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Sonya_Blade"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Antique Training Manual"
+                }, {
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }, {
+                    "quantity": 1,
+                    "name": "Frayed Wiring"
+                }]
+            }, {
+                "recipe": "Kuai Liang's Frosty Arsenal (Sub-Zero Gear)",
+                "type": "Character Gear",
+                "reference": {
+                    "type": "Character",
+                    "item": "Sub-Zero",
+                    "link": "https://www.ign.com/wikis/mortal-kombat-11/Sub-Zero"
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Cracked Lin Kuai Bombshell"
+                }, {
+                    "quantity": 1,
+                    "name": "Black Powder"
+                }, {
+                    "quantity": 1,
+                    "name": "Unbroken Fuse"
+                }]
+            }, {
+                "recipe": "Amulet of Lost Souls (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Necromantic Runestone"
+                }, {
+                    "quantity": 1,
+                    "name": "Outworld Steel"
+                }]
+            }, {
+                "recipe": "Ancestral Katana (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Element of Order"
+                }, {
+                    "quantity": 1,
+                    "name": "Handful of Flux"
+                }]
+            }, {
+                "recipe": "Ash of Vrbada (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Dragon Flame"
+                }, {
+                    "quantity": 1,
+                    "name": "Suspended Osh-Tekk Sunlight"
+                }]
+            }, {
+                "recipe": "Ball of Coagulated Blood (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Coagulated Vampire Blood"
+                }, {
+                    "quantity": 1,
+                    "name": "Crystalline Shard"
+                }]
+            }, {
+                "recipe": "Black Dragon Butterfly Knife (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Obsidian Shard"
+                }, {
+                    "quantity": 1,
+                    "name": "Outworld Steel"
+                }, {
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }]
+            }, {
+                "recipe": "Blacked Sickle (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Coagulated Vampire Blood"
+                }, {
+                    "quantity": 1,
+                    "name": "Krystalline Shard"
+                }, {
+                    "quantity": 1,
+                    "name": "Synthetic Fiber"
+                }]
+            }, {
+                "recipe": "Bloodied Sai (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Coagulated Vampire Blood"
+                }, {
+                    "quantity": 1,
+                    "name": "Krypt Spider Silk"
+                }]
+            }, {
+                "recipe": "Bloodied Tonfa (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Handful of Flux"
+                }, {
+                    "quantity": 1,
+                    "name": "Tygorr Hide"
+                }]
+            }, {
+                "recipe": "Bottled Rage (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Bottled Thunder"
+                }, {
+                    "quantity": 1,
+                    "name": "Distilled Tarkatan Rage"
+                }, {
+                    "quantity": 1,
+                    "name": "Dragon Flame"
+                }]
+            }, {
+                "recipe": "Broken Quiver (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Serpent Scales"
+                }, {
+                    "quantity": 1,
+                    "name": "Lost Soul Essence"
+                }]
+            }, {
+                "recipe": "Charged Cyber Core (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Charged Capacitors"
+                }, {
+                    "quantity": 1,
+                    "name": "Power Core"
+                }, {
+                    "quantity": 1,
+                    "name": "Frayed Wiring"
+                }]
+            }, {
+                "recipe": "Charged Knuckle Duster (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }, {
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }, {
+                    "quantity": 1,
+                    "name": "Bottled Thunder"
+                }]
+            }, {
+                "recipe": "Crown of the Fallen Prince (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Essence of Edenian Magic"
+                }, {
+                    "quantity": 1,
+                    "name": "Lost Soul Essence"
+                }]
+            }, {
+                "recipe": "Cyber Communicator (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }, {
+                    "quantity": 1,
+                    "name": "Motherboard"
+                }]
+            }, {
+                "recipe": "Cyber Snare (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }, {
+                    "quantity": 1,
+                    "name": "Frayed Wiring"
+                }]
+            }, {
+                "recipe": "Electric Field Generator (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Charged Capacitors"
+                }, {
+                    "quantity": 1,
+                    "name": "Charged Capacitors"
+                }, {
+                    "quantity": 1,
+                    "name": "Outworld Steel"
+                }]
+            }, {
+                "recipe": "Electrified Takuhatsugasa (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Bottled Thunder"
+                }, {
+                    "quantity": 1,
+                    "name": "Charged Capacitors"
+                }, {
+                    "quantity": 1,
+                    "name": "Synthetic Fibers"
+                }]
+            }, {
+                "recipe": "Eternal Sand (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Bottled Thunder"
+                }, {
+                    "quantity": 1,
+                    "name": "Elder God's Spark"
+                }, {
+                    "quantity": 1,
+                    "name": "Elder God's Spark"
+                }]
+            }, {
+                "recipe": "Ethereal Armor (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Element of Order"
+                }, {
+                    "quantity": 1,
+                    "name": "Essence of Edenian Magic"
+                }, {
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }]
+            }, {
+                "recipe": "Fists of Cold Steel (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Essence of Frost"
+                }, {
+                    "quantity": 1,
+                    "name": "Krypt Spider Silk"
+                }]
+            }, {
+                "recipe": "Flash Grenade (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Carbon Film Resistor"
+                }, {
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }]
+            }, {
+                "recipe": "Force Ball (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Serpent Scales"
+                }, {
+                    "quantity": 1,
+                    "name": "Suspended Osh-Tekk Sunlight"
+                }]
+            }, {
+                "recipe": "Frost Core Fragment (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Powered Core"
+                }, {
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }]
+            }, {
+                "recipe": "Gourd of the Eight Immortals (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }, {
+                    "quantity": 1,
+                    "name": "Elder God's Spark"
+                }]
+            }, {
+                "recipe": "Homing Missile (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Frayed Wiring"
+                }, {
+                    "quantity": 1,
+                    "name": "Miniature Explosive Charge"
+                }]
+            }, {
+                "recipe": "Kuai's Medallion (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }, {
+                    "quantity": 1,
+                    "name": "Kytinn Spittle"
+                }, {
+                    "quantity": 1,
+                    "name": "Leather Strips"
+                }]
+            }, {
+                "recipe": "Kytinn Pheromones (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Coagulated Vampire Blood"
+                }, {
+                    "quantity": 1,
+                    "name": "Cordite"
+                }, {
+                    "quantity": 1,
+                    "name": "Kytinn Spittle"
+                }]
+            }, {
+                "recipe": "Lightning Resistance (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Charged Capacitors"
+                }, {
+                    "quantity": 1,
+                    "name": "Outworld Steel"
+                }, {
+                    "quantity": 1,
+                    "name": "Bottled Thunder"
+                }]
+            }, {
+                "recipe": "Liquid Nitrogen Filled Explosives (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Cordite"
+                }, {
+                    "quantity": 1,
+                    "name": "Miniature Explosive Charge"
+                }]
+            }, {
+                "recipe": "Lit Shades (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Gold Ore"
+                }, {
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }, {
+                    "quantity": 1,
+                    "name": "Krystalline Shard"
+                }]
+            }, {
+                "recipe": "Liu Kang's Headband (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Dragon Flame"
+                }, {
+                    "quantity": 1,
+                    "name": "Element of Order"
+                }, {
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }]
+            }, {
+                "recipe": "Meteorite Core (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Meteorite Dust"
+                }, {
+                    "quantity": 1,
+                    "name": "Outworld Steel"
+                }]
+            }, {
+                "recipe": "Napalm Missiles (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }, {
+                    "quantity": 1,
+                    "name": "Miniature Explosive Charge"
+                }]
+            }, {
+                "recipe": "Netherstone of Magnus (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Dragon Flame"
+                }, {
+                    "quantity": 1,
+                    "name": "Black Powder"
+                }, {
+                    "quantity": 1,
+                    "name": "Krystalline Shard"
+                }]
+            }, {
+                "recipe": "Nitara's Gemstone (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Coagulated Vampire Blood"
+                }, {
+                    "quantity": 1,
+                    "name": " Cordite"
+                }, {
+                    "quantity": 1,
+                    "name": "Element of Order"
+                }]
+            }, {
+                "recipe": "Necromancer's Rune (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Necromantic Runestone"
+                }, {
+                    "quantity": 1,
+                    "name": "Ground Bone Dust"
+                }]
+            }, {
+                "recipe": "Poison Claws (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Zaterran Venom Sac"
+                }, {
+                    "quantity": 1,
+                    "name": "Kytinn Spittle"
+                }]
+            }, {
+                "recipe": "Polished Dog Tags (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Black Powder"
+                }, {
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }, {
+                    "quantity": 1,
+                    "name": "Gold Ore"
+                }]
+            }, {
+                "recipe": "Prototype Electro Rockets (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Unbroken Fuse"
+                }, {
+                    "quantity": 1,
+                    "name": "Frayed Wiring"
+                }, {
+                    "quantity": 1,
+                    "name": "Miniature Explosive Charge"
+                }]
+            }, {
+                "recipe": "Riot Grenade (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Charged Capacitor"
+                }, {
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }]
+            }, {
+                "recipe": "Red Dragon Beam Emitter (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Carbon Film Resistor"
+                }, {
+                    "quantity": 1,
+                    "name": "Circuity Bundle"
+                }]
+            }, {
+                "recipe": "Reiko's Shuriken (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Bottled Thunder"
+                }, {
+                    "quantity": 1,
+                    "name": "Outworld Steel"
+                }]
+            }, {
+                "recipe": "Robo-Sek Memory Unit (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Charged Capacitors"
+                }, {
+                    "quantity": 1,
+                    "name": "Power Core"
+                }, {
+                    "quantity": 1,
+                    "name": "Frayed Wiring"
+                }]
+            }, {
+                "recipe": "Sack of Silver Dollars (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Black Powder"
+                }, {
+                    "quantity": 1,
+                    "name": "Ground Pone Dust"
+                }, {
+                    "quantity": 1,
+                    "name": "Outworld Steel"
+                }]
+            }, {
+                "recipe": "Sacrifice Stone (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Tygorr Hide"
+                }, {
+                    "quantity": 1,
+                    "name": "Ground Bone Dust"
+                }, {
+                    "quantity": 1,
+                    "name": "Grave Soil"
+                }]
+            }, {
+                "recipe": "Severed Arm of Shinnok (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Ground Bone Dust"
+                }, {
+                    "quantity": 1,
+                    "name": "Suspended Osh-Tekk Sunlight"
+                }]
+            }, {
+                "recipe": "Severed Head (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Grave Soil"
+                }, {
+                    "quantity": 1,
+                    "name": "Necromantic Runestone"
+                }]
+            }, {
+                "recipe": "Shield of Living Flame (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Netherrealm Magma"
+                }, {
+                    "quantity": 1,
+                    "name": "Netherrealm Magma"
+                }, {
+                    "quantity": 1,
+                    "name": "Dragon Flame"
+                }]
+            }, {
+                "recipe": "Shard of Life (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Coagulated Vampire Blood"
+                }, {
+                    "quantity": 1,
+                    "name": "Element of Order"
+                }, {
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }]
+            }, {
+                "recipe": "Sigil of the Red Dragon (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Netherrealm Magma"
+                }, {
+                    "quantity": 1,
+                    "name": "Distilled Tarkatan Rage"
+                }, {
+                    "quantity": 1,
+                    "name": "Carbon Film Resistor"
+                }]
+            }, {
+                "recipe": "Silver Dragon (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Bottled Thunder"
+                }, {
+                    "quantity": 1,
+                    "name": "Obsidian Shard"
+                }, {
+                    "quantity": 1,
+                    "name": "Outworld Steel"
+                }]
+            }, {
+                "recipe": "Special Forces Com (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Power Core"
+                }, {
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }, {
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }]
+            }, {
+                "recipe": "Special Forces Radio (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Frayed Wiring"
+                }, {
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }, {
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }]
+            }, {
+                "recipe": "Static Shield Generator (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Charged Capacitors"
+                }, {
+                    "quantity": 1,
+                    "name": "Charged Capacitors"
+                }, {
+                    "quantity": 1,
+                    "name": "Carbon Film Resistor"
+                }]
+            }, {
+                "recipe": "Takeda's Kunai (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Synthetic Fiber"
+                }, {
+                    "quantity": 1,
+                    "name": "Handful of Flux"
+                }]
+            }, {
+                "recipe": "Tekunin Emergency Receiver (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Frayed Wiring"
+                }, {
+                    "quantity": 1,
+                    "name": "Carbon Film Resistor"
+                }, {
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }]
+            }, {
+                "recipe": "Transmute Hearts (50 Hearts)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Coagulated Vampire Blood"
+                }, {
+                    "quantity": 1,
+                    "name": "Coagulated Vampire Blood"
+                }, {
+                    "quantity": 1,
+                    "name": "Element of Order"
+                }]
+            }, {
+                "recipe": "Transmute Koins (5,000)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Gold Ore"
+                }, {
+                    "quantity": 1,
+                    "name": "Gold Ore"
+                }, {
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }]
+            }, {
+                "recipe": "Transmute Souls (250)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Lost Soul Essence"
+                }, {
+                    "quantity": 1,
+                    "name": "Lost Soul Essence"
+                }, {
+                    "quantity": 1,
+                    "name": "Necromatic Runestone"
+                }]
+            }, {
+                "recipe": "Tremor Spike (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Meteorite Dust"
+                }, {
+                    "quantity": 1,
+                    "name": "Netherrealm Magma"
+                }]
+            }, {
+                "recipe": "Upgraded Military Boots (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Handful of Flux"
+                }, {
+                    "quantity": 1,
+                    "name": "Copper Plating"
+                }, {
+                    "quantity": 1,
+                    "name": "Circuitry Bundle"
+                }]
+            }, {
+                "recipe": "Venom Laced Missile (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Kytinn Spittle"
+                }, {
+                    "quantity": 1,
+                    "name": "Miniature Explosive Charge"
+                }]
+            }, {
+                "recipe": "Water God's Artifact (x10)",
+                "type": "Konsumables",
+                "reference": {
+                    "type": "Konsumable",
+                    "item": "",
+                    "link": ""
+                },
+                "requirements": [{
+                    "quantity": 1,
+                    "name": "Elder God's Spark"
+                }, {
+                    "quantity": 1,
+                    "name": "Handful of Flux"
+                }]
+            }];
+            var inventory = [];
+
+            // attach main event
+            $(document).ready(start);
+
+            /**
+                Initialize app
+                - fill form with available items
+                - sort the recipes
+                - get the inventory from browser storage
+                - attach events
+                - show recipe items in UI
+            */
+            function start(){
+                // fill options list (to add new elements)
+                let options = recipes.reduce((ac, it) => ac.concat(it.requirements), [])
+                    .map(it => it.name.trim())
+                    .filter((n, pos, self) => self.indexOf(n) === pos);
+                options.sort();
+                options.forEach(n => {
+                            $('#inventory-item').append(new Option(n,n));
+                        }
+                    );
+                // sort the recipes by name
+                recipes.sort((a,b) => a.recipe.localeCompare(b.recipe));
+                // get inventory from browser
+                if(localStorage.getItem('mk-inventory')){
+                    try{
+                        inventory = JSON.parse(localStorage.getItem('mk-inventory'));
+                        refreshInventory();
+                    } catch(error){
+                        showToast('Hemos eliminado tu inventario debido a que estaba corrupto');
+                        localStorage.clear();
+                    }
+                } else {
+                    showToast('Parece que tu inventario esta vacío');
+                }
+                // attach handler to add button
+                $('#add-inventory').click(addItem);
+                // calculate the damn items
+                refreshRecipes();
+            }
+
+            /**
+                Drop the inventory table and re-build each row (to refresh changes when adding/removing items)
+            */
+            function refreshInventory(){
+                let inventoryBody = $('#inventory-user-items');
+                // drop the inventory table
+                inventoryBody.empty();
+                // re-build each row
+                inventory.forEach(it => {
+                    // the delete button should be attached each time is created to bind the event
+                    let deleteButton = $('<button>');
+                    deleteButton.data('item', it.name);
+                    deleteButton.text('Eliminar');
+                    deleteButton.addClass('btn btn-danger remove-inventory');
+                    deleteButton.click(removeItem);
+                    // append the row created to the table
+                    inventoryBody.append($('<tr>')
+                        .append($('<td>').append(it.name))
+                        .append($('<td>').append(it.quantity))
+                        .append($('<td>').append(deleteButton))
+                    );
+                });
+            }
+
+            /**
+                Drop the recipes table and re-build each row (to refresh changes when the requirements and inventory info change)
+            */
+            function refreshRecipes(){
+                let recipeBody = $('#recipe-items');
+                // drop the recipes table
+                recipeBody.empty();
+                // re-build each row
+                recipes.forEach(it => {
+                    let missingItems = it.requirements.filter((it) => {
+                                let iv = inventory.find(ivi => ivi.name.trim().toLowerCase() === it.name.trim().toLowerCase());
+                                return !iv || it.quantity > iv.quantity; // we don't have the item in the inventory and or don't have enough quantity
+                            });
+                    let link = null;
+                    // if we got the reference to a character create a link to append it to the table
+                    if(it.reference.link !== ''){
+                        link = $('<a>');
+                        link.attr('href', it.reference.link);
+                        link.attr('target', '_blank');
+                        link.text(it.reference.item);
+                        link.addClass('badge badge-dark');
+                    }
+                    // re-build row
+                    let row = $('<tr>')
+                        .append($('<td>').append(link ? link : ''))
+                        .append($('<td>').append(it.recipe))
+                        .append($('<td>').append(it.requirements.reduce((ac, e) => ac = ac + e.quantity + ' ' + e.name + '</br>', '')))
+                        .append($('<td>').append(
+                            missingItems.reduce((ac, e) => ac = ac + e.name +  '</br>', '')
+                        ));
+                    // if we can craft this item color the row with green
+                    if(missingItems.length === 0){
+                        row.addClass('table-success');
+                    }
+                    // append row
+                    recipeBody.append(row);
+                });
+            }
+
+            /**
+                Add the item to the inventory
+            */
+            function addItem(){
+                // validate the required quantity
+                if($('#inventory-quantity').val() === ''){
+                    showToast('Ingresa una cantidad!');
+                    return;
+                }
+                // create the new item
+                let newItem = {
+                    quantity: parseInt($('#inventory-quantity').val(), 10),
+                    name: $('#inventory-item').val()
+                };
+                // if we have that element we will update the quantoty else we insert it
+                let existingElement = inventory.find(el => el.name === newItem.name);
+                if(existingElement){
+                    existingElement.quantity = existingElement.quantity + newItem.quantity;
+                    showToast(newItem.name + ' ya existe, por lo que se sumó/restó la cantidad ingresada al elemento existente');
+                } else {
+                    inventory.push(newItem);
+                }
+                // revert the input field to default
+                $('#inventory-quantity').val('1');
+                // sort the inventory
+                inventory.sort((a,b) => a.name.localeCompare(b.name));
+                // refresh the UI and Storage
+                refreshInventory();
+                refreshRecipes();
+                saveInventory();
+            }
+
+            /**
+                Remove the element from inventory
+            */
+            function removeItem(event){
+                // get the name of the element save in the row html
+                let itemToDelete = $(event.target).data('item');
+                // filter the element out form the inventory
+                inventory = inventory.filter(e => e.name.trim().toLowerCase() !== itemToDelete.trim().toLowerCase());
+                // refresh the UI and Storage
+                refreshInventory();
+                refreshRecipes();
+                saveInventory();
+            }
+
+            /**
+                Save the inventory to the browser
+            */
+            function saveInventory(){
+                localStorage.setItem('mk-inventory', JSON.stringify(inventory));
+            }
+
+            /**
+                Show a alert to the user
+            */
+            function showToast(message){
+                let toast = $('#mk-toast');
+                toast.find('.toast-body').text(message);
+                toast.toast({delay: 5000});
+                toast.toast('show');
+            }
+        </script>
+
+    </body>
+</html>
